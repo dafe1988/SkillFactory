@@ -1,7 +1,8 @@
 ======================================================================
 # Проект 3. Определение параметров модели,
 # предсказывающей рейтинг ресторана для TripAdvisor
-Ссылка на каггл соревнование с проектом:
+
+#### Ссылка на каггл соревнование с проектом:
 https://www.kaggle.com/c/sf-dst-restaurant-rating/overview
 ======================================================================
 
@@ -17,9 +18,10 @@ https://www.kaggle.com/c/sf-dst-restaurant-rating/overview
     
 =======================================================================  
 ## В результате на соревновании каггл удалось получить метрику МАЕ=0.1767
-## Мой User Name на каггл - dariafesenko
-## Моя позиция в Public Leaderboard - 155
-Ссылка на baseline в каггл: https://www.kaggle.com/dariafesenko/baseline-sf-tripadvisor-rating-v2-7-dariasf
+ #### Мой User Name на каггл - dariafesenko
+ #### Моя позиция в Public Leaderboard - 155
+ #### Ссылка на baseline в каггл:
+ https://www.kaggle.com/dariafesenko/baseline-sf-tripadvisor-rating-v2-7-dariasf
 =======================================================================  
 
 ## Краткая информация о данных
