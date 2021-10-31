@@ -1,0 +1,549 @@
+4. Изучаем закономерности в данных
+Задание 4.1 
+База данных содержит список аэропортов практически всех крупных городов России. В большинстве городов есть только один аэропорт. Исключение составляет:
+(Moscow, Ulyanovsk)
+
+select 
+    a.city
+from 
+    dst_project.airports a
+group by 1
+having count(a.airport_code) > 1  
+
+Задание 4.2 
+Вопрос 1. Таблица рейсов содержит всю информацию о прошлых, текущих и запланированных рейсах. Сколько всего статусов для рейсов определено в таблице?
+(6)
+
+select 
+    count(distinct f.status)
+from 
+    dst_project.flights f
+    
+Вопрос 2. Какое количество самолетов находятся в воздухе на момент среза в базе (статус рейса «самолёт уже вылетел и находится в воздухе»).
+(58)
+
+select 
+    count(f.flight_id)
+from 
+    dst_project.flights f
+where
+    f.status = 'Departed'
+    
+Вопрос 3. Места определяют схему салона каждой модели. Сколько мест имеет самолет модели 773 (Boeing 777-300)?
+(402)
+
+select 
+    count(s.seat_no)
+from 
+    dst_project.seats s
+where
+    s.aircraft_code = '773'
+    
+Вопрос 4. Сколько состоявшихся (фактических) рейсов было совершено между 1 апреля 2017 года и 1 сентября 2017 года? 
+(74227)
+
+select 
+    count(f.flight_id)
+from 
+    dst_project.flights f
+where
+    f.status != 'Cancelled'
+    and f.actual_arrival between 'April 1, 2017'::date and 'September 1, 2017'::date
+    
+Задание 4.3
+Вопрос 1. Сколько всего рейсов было отменено по данным базы?
+(437)
+
+select 
+    count(f.flight_id)
+from 
+    dst_project.flights f
+where
+    f.status = 'Cancelled'
+    
+Вопрос 2. Сколько самолетов моделей типа Boeing, Sukhoi Superjet, Airbus находится в базе авиаперевозок?
+(Boeing - 3 , Sukhoi Superjet - 1, Airbus - 3)
+
+select
+    count(case when a.model like 'Boeing%' then a.aircraft_code end) count_boeing,
+    count(case when a.model like 'Sukhoi Superjet%' then a.aircraft_code end) count_ss,
+    count(case when a.model like 'Airbus%' then a.aircraft_code end) count_airbus
+from
+    dst_project.aircrafts a
+
+Вопрос 3. В какой части (частях) света находится больше аэропортов? 
+
+select 
+    a.timezone,
+    count(a.airport_code)
+from 
+    dst_project.airports a
+group by 1
+order by 2 desc
+
+Вопрос 4. У какого рейса была самая большая задержка прибытия за все время сбора данных? Введите id рейса (flight_id).
+(157571)
+
+select 
+    f.flight_id,
+    f.actual_arrival,
+    f.scheduled_arrival,
+    f.actual_arrival - f.scheduled_arrival diff
+from 
+    dst_project.flights f 
+where f.actual_arrival is not null
+    and f.scheduled_arrival is not null
+order by 4 desc
+limit 1
+
+Задание 4.4 
+Вопрос 1. Когда был запланирован самый первый вылет, сохраненный в базе данных?
+
+select 
+    f.flight_id,
+    f.scheduled_departure
+from 
+    dst_project.flights f 
+order by 2
+limit 1
+
+Вопрос 2. Сколько минут составляет запланированное время полета в самом длительном рейсе
+select 
+    f.flight_id,
+    f.scheduled_arrival - f.scheduled_departure diff,
+    extract(minute from f.scheduled_arrival - f.scheduled_departure) min_extract,
+    extract(hour from f.scheduled_arrival - f.scheduled_departure)*60 + extract(minute from f.scheduled_arrival - f.scheduled_departure) all_minutes
+from 
+    dst_project.flights f 
+order by 4 desc
+
+Вопрос 3. Между какими аэропортами пролегает самый длительный по времени запланированный рейс? 
+
+select 
+    f.flight_id,
+    extract(hour from f.scheduled_arrival - f.scheduled_departure)*60 + extract(minute from f.scheduled_arrival - f.scheduled_departure) all_minutes,
+    f.departure_airport,
+    f.arrival_airport
+from 
+    dst_project.flights f 
+order by 2 desc
+
+Вопрос 4. Сколько составляет средняя дальность полета среди всех самолетов в минутах? Секунды округляются в меньшую сторону (отбрасываются до минут)
+(128)
+
+select 
+    avg(extract(hour from f.scheduled_arrival - f.scheduled_departure)*60 + extract(minute from f.scheduled_arrival - f.scheduled_departure))
+from 
+    dst_project.flights f 
+    
+Задание 4.5
+Вопрос 1. Мест какого класса у SU9 больше всего?
+(Economy 85)
+
+select
+    distinct s.fare_conditions, 
+    count(s.seat_no) over (partition by s.fare_conditions)
+from
+    dst_project.seats s 
+where
+    s.aircraft_code = 'SU9'
+order by 2 desc
+
+Вопрос 2. Какую самую минимальную стоимость составило бронирование за всю историю? 
+(3400)
+
+select
+    min(b.total_amount)
+from 
+    dst_project.bookings b
+    
+Вопрос 3. Какой номер места был у пассажира с id = 4313 788533
+(2A)
+
+select
+    bp.seat_no
+from 
+    dst_project.tickets t
+    join dst_project.boarding_passes bp on t.ticket_no = bp.ticket_no
+where
+    t.passenger_id = '4313 788533'
+    
+5. Предварительный анализ
+Задание 5.1 
+Вопрос 1. Анапа — курортный город на юге России. Сколько рейсов прибыло в Анапу за 2017 год?
+(486)
+
+select
+    count(f.flight_id)
+from 
+    dst_project.flights f
+    join dst_project.airports a on f.arrival_airport = a.airport_code
+where
+    a.city = 'Anapa'
+    and extract(year from f.actual_arrival) = '2017'
+    
+Вопрос 2. Сколько рейсов из Анапы вылетело зимой 2017 года?
+(127)
+
+select
+    count(f.flight_id)
+from 
+    dst_project.flights f
+    join dst_project.airports a on f.departure_airport = a.airport_code
+where
+    a.city = 'Anapa'
+    and extract(year from f.actual_departure) = '2017'
+    and extract(month from f.actual_departure) in (12,1,2)
+
+Вопрос 3. Посчитайте количество отмененных рейсов из Анапы за все время
+(1)
+
+select
+    count(f.flight_id)
+from 
+    dst_project.flights f
+    join dst_project.airports a on f.departure_airport = a.airport_code
+where
+    a.city = 'Anapa'
+    and f.status = 'Cancelled'
+
+Вопрос 4. Сколько рейсов из Анапы не летают в Москву?
+(453)
+
+select
+    sum(count(f.flight_id)) over ()
+from 
+    dst_project.flights f
+    join dst_project.airports a on f.departure_airport = a.airport_code
+    join dst_project.airports aa on f.arrival_airport = aa.airport_code
+where
+    a.city = 'Anapa'
+    and aa.city != 'Moscow'
+group by a.city 
+
+Вопрос 5. Какая модель самолета летящего на рейсах из Анапы имеет больше всего мест?
+(Boeing 737-300)
+
+select
+    ac.model,
+    count(distinct s.seat_no)
+from 
+    dst_project.flights f
+    join dst_project.airports a on f.departure_airport = a.airport_code
+    join dst_project.aircrafts ac on f.aircraft_code = ac.aircraft_code
+    join dst_project.seats s on f.aircraft_code = s.aircraft_code 
+where
+    a.city = 'Anapa'
+group by a.city, 1 
+order by 2 desc
+
+******************************************************************************************************************************************************************************
+
+Запрос предварительной информации по зимним рейсам из Анапы:
+SELECT *
+FROM dst_project.flights
+WHERE departure_airport = 'AAQ'
+  AND (date_trunc('month', scheduled_departure) in ('2017-01-01','2017-02-01', '2017-12-01'))
+  AND status not in ('Cancelled')
+  
+Мы получили 127 рейсов, совершенных из Анапы за зимний период 2017 года
+
+Добавим столбцы с номером билета и его стоимостью, а также запланированной и фактической продолжительностью полета, а также информацию по аэропорту назначения - город, название, координаты и временная зона,
+а также координаты и временную зону аэропорта анапы
+
+назовем этот код КОД_01:
+
+SELECT 
+    distinct f.flight_id,
+    f.flight_no,
+    f.scheduled_departure,
+    f.scheduled_arrival,
+    extract(hour from f.scheduled_arrival - f.scheduled_departure)*60 + extract(minute from f.scheduled_arrival - f.scheduled_departure) sheduled_duration,
+    f.departure_airport,
+    f.arrival_airport,
+    f.aircraft_code,
+    extract(hour from f.actual_arrival - f.actual_departure)*60 + extract(minute from f.actual_arrival - f.actual_departure) actual_duration,
+    tf.ticket_no,
+    tf.fare_conditions,
+    tf.amount ticket_amount,
+    a.city arrival_city,
+    a.airport_name arrival_airport_name,
+    a.latitude arrival_lat,
+    a.longitude arrival_lon,
+    a.timezone arrival_timezone,
+    aa.latitude departure_lat,
+    aa.longitude departure_lon,
+    aa.timezone departure_timezone
+FROM dst_project.flights f
+    join dst_project.ticket_flights tf on f.flight_id = tf.flight_id
+    join dst_project.airports a on f.arrival_airport = a.airport_code -- добавим данные по аэропорту назначения
+    join dst_project.airports aa on f.departure_airport = aa.airport_code -- добавим данные по аэропорту анапы
+WHERE departure_airport = 'AAQ'
+  AND (date_trunc('month', scheduled_departure) in ('2017-01-01','2017-02-01', '2017-12-01'))
+  AND status not in ('Cancelled')
+order by 3
+
+Далее посмотрели, что у нас одна timezone у всех аэропортов прибытия и она совпадает с timezone аэропорта вылета, это Europe/Moscow
+
+with anapa_winter as
+(
+КОД_01
+)
+SELECT
+    distinct aw.arrival_timezone
+from 
+    anapa_winter aw
+    
+А значит мы можем удалить из КОД_01 столбцы с временными зонами аэропортов вылета и прилета, а также принять, что наш расчет времени полета верный, нет смены часовых поясов при перелете
+
+Интересно, сколько всего стоимость всех билетов за этот период, то есть сколько туроператор заработал:
+
+with anapa_winter as
+(
+КОД_01
+)
+SELECT
+    sum(aw.ticket_amount)
+from 
+    anapa_winter aw
+    
+Получилось 138827700 - это суммарный доход от продажи билетов. но теперь нам надо рассчитать расходы на перелеты
+
+Добавим в наш датасет колонки с моделью самолета и его рангом
+назовем этот код КОД_02:
+
+SELECT 
+    distinct f.flight_id,
+    f.flight_no,
+    f.scheduled_departure,
+    f.scheduled_arrival,
+    extract(hour from f.scheduled_arrival - f.scheduled_departure)*60 + extract(minute from f.scheduled_arrival - f.scheduled_departure) sheduled_duration,
+    f.departure_airport,
+    f.arrival_airport,
+    f.aircraft_code,
+    extract(hour from f.actual_arrival - f.actual_departure)*60 + extract(minute from f.actual_arrival - f.actual_departure) actual_duration,
+    tf.ticket_no,
+    tf.fare_conditions,
+    tf.amount ticket_amount,
+    a.city arrival_city,
+    a.airport_name arrival_airport_name,
+    a.latitude arrival_lat,
+    a.longitude arrival_lon,
+    aa.latitude departure_lat,
+    aa.longitude departure_lon,
+    ac.model,
+    ac.range
+FROM dst_project.flights f
+    join dst_project.ticket_flights tf on f.flight_id = tf.flight_id
+    join dst_project.airports a on f.arrival_airport = a.airport_code
+    join dst_project.airports aa on f.departure_airport = aa.airport_code 
+    join dst_project.aircrafts ac on f.aircraft_code = ac.aircraft_code
+WHERE departure_airport = 'AAQ'
+  AND (date_trunc('month', scheduled_departure) in ('2017-01-01','2017-02-01', '2017-12-01'))
+  AND status not in ('Cancelled')
+order by 3
+
+
+Проведем некоторые исследования с использованием КОД_02
+
+Сколько всего билетов было:
+with anapa_winter as
+(
+КОД_02
+)
+SELECT
+     count(distinct aw.ticket_no)
+from 
+    anapa_winter aw
+Ответ: 11995
+
+Посмотрим по направлениям количество билетов и сумму:
+with anapa_winter as
+(
+КОД_02
+)
+SELECT
+    distinct aw.flight_no,
+    count(aw.ticket_no) over (partition by aw.flight_no) count_tickets,
+    sum(aw.ticket_amount) over (partition by aw.flight_no) sum_amount,
+    sum(aw.actual_duration) over (partition by aw.flight_no) sum_duration
+from 
+    anapa_winter aw
+Видим, что у нас всего 2 направления перелетов, это flight_no = ('PG0480', 'PG0252')
+и по ним следующую статистику:
+PG0480 - 5,321 - 41,915,700 - 666,120
+PG0252 - 6,674 - 96,912,000 - 266,560
+Уже тут видим, что по направлению 'PG0480' доходность выше, но и продолжительность всех перелетов значительно выше, а это значит больше расхода
+
+Посмотрим такую же сводную статистику по дням недели
+with anapa_winter as
+(
+КОД_02
+)
+SELECT
+    distinct date_part('dow', aw.actual_departure::date),
+    count(aw.ticket_no) over (partition by date_part('dow', aw.actual_departure::date)) count_tickets,
+    sum(aw.ticket_amount) over (partition by date_part('dow', aw.actual_departure::date)) sum_amount,
+    sum(aw.actual_duration) over (partition by date_part('dow', aw.actual_departure::date)) sum_duration
+from 
+    anapa_winter aw
+order by 1 
+0 - 1,753 - 20,233,100 - 134,607
+1 - 1,802 - 20,874,600 - 140,615
+2 - 1,868 - 21,639,000 - 146,622
+3 - 1,654 - 18,990,900 - 127,516
+4 - 1,625 - 18,803,200 - 126,876
+5 - 1,650 - 19,206,300 - 128,403
+6 - 1,643 - 19,080,600 - 128,041
+
+Меньше всего туроператор зарабатывает за четверговые рейсы. Видимо, важно учесть модель самолета и его вместимость. кстати, отметим, что в датасет стоит добавить колонку с днем недели
+
+Посмотрим какие у нас есть модели самолетов, и с какой вместимостью каждый 
+with anapa_winter as
+(
+КОД_02
+)
+SELECT
+    aw.model,
+    count(distinct s.seat_no)
+from 
+    anapa_winter aw
+    join dst_project.seats s on aw.aircraft_code = s.aircraft_code 
+group by 1
+Boeing 737-300        -   130
+Sukhoi Superjet-100   -   97
+
+
+Посмотрим сводную статистику по моделям самолетов
+with anapa_winter as
+(
+КОД_02
+)
+SELECT
+    distinct aw.model,
+    count(aw.ticket_no) over (partition by aw.model) count_tickets,
+    sum(aw.ticket_amount) over (partition by aw.model) sum_amount,
+    sum(aw.actual_duration) over (partition by aw.model) sum_duration,
+    avg(aw.actual_duration) over (partition by aw.model) avg_duration,
+    avg(aw.ticket_amount) over (partition by aw.model) avg_ticket
+from 
+    anapa_winter aw
+Sukhoi Superjet-100   - 5,321 - 41,915,700 - 266,560 - 50.1 - 7,877.41 
+Boeing 737-300        - 6,674 - 96,912,000 - 666,120 - 99.81 - 14,520.83
+
+и кстати, если мы сделаем сводную статистику по месяцам, то обнаружим, что в декабре 2017 не было перелетов, есть только январь и февраль
+разумно предположить, что декабрь 2016 года стоит учесть в статистике для более полной картины зимнего периода
+
+изменим условие where основного запроса:
+where
+    f.departure_airport = 'AAQ'
+    and (date_trunc('month', f.scheduled_departure) in ('2016-12-01','2017-01-01','2017-02-01'))
+    and status not in ('Cancelled')
+
+На всякий пожарный глянем как наши перелеты связаны с полными бронями билетов
+select
+    b.book_ref,
+    b.total_amount,
+    sum(tf.amount) over (partition by b.book_ref) total_by_tickets,
+    count(t.ticket_no) over (partition by b.book_ref) count_tickets
+from 
+    dst_project.flights f
+    join dst_project.ticket_flights tf on f.flight_id = tf.flight_id
+    join dst_project.tickets t on tf.ticket_no = t.ticket_no 
+    join dst_project.bookings b on t.book_ref = b.book_ref
+where
+    f.departure_airport = 'AAQ'
+    and (date_trunc('month', f.scheduled_departure) in ('2016-12-01','2017-01-01','2017-02-01'))
+    and status not in ('Cancelled')
+group by 1, tf.amount, t.ticket_no
+order by 4 desc
+
+Мы видим, что интересующие нас рейсы как правило составляют только часть основной брони, и обычно бронь сразу на несколько перелетов, часто на несколько человек.
+Это было бы нам интересно при исследовании поведения клиентов при покупке билетов, но в данной задаче это не очень важно, так что мы не будем брать исследуемый датасет эти данные
+
+Еще посмотрим сколько стоят билеты разных классов по коду самолета
+select
+    f.aircraft_code,
+    tf.fare_conditions,
+    tf.amount
+from 
+    dst_project.flights f
+    join dst_project.ticket_flights tf on f.flight_id = tf.flight_id
+where
+    f.departure_airport = 'AAQ'
+    and (date_trunc('month', f.scheduled_departure) in ('2016-12-01','2017-01-01','2017-02-01'))
+    and status not in ('Cancelled')
+group by 1, 2, 3
+order by 1
+Получили:
+733 - Business - 36600
+733 - Econom - 12200/13400
+SU9 - Business - 18900
+SU9 - Econom - 6300/6900
+то есть мы можем добавить колонки с количеством билетов по определенной стоимости на рейсе
+
+
+Теперь соберем интересующую нас информацию и статистику по рейсам из Анапы за зимний период конца 2016 - начала 2017 годов 
+
+Финальный запрос  выглядит следующим образом
+
+******************************************************************************************************************************************************************
+
+select 
+    distinct f.flight_id, -- идентификатор перелета
+    f.flight_no, --номер рейса (направление)
+    f.scheduled_departure::date, -- запланированное время вылета
+    f.actual_departure::date, -- фактическое время вылета
+    date_part('dow', f.actual_departure) dep_dow, -- day of week, 0-sunday, 6-saturday
+    date_part('month', f.actual_departure) dep_month, -- month
+    date_part('day', f.actual_departure) dep_day, -- day of month
+    date_part('hour', f.actual_departure) dep_hour, -- hour
+    extract(hour from f.scheduled_arrival - f.scheduled_departure)*60 + extract(minute from f.scheduled_arrival - f.scheduled_departure) sheduled_duration, 
+    extract(hour from f.actual_arrival - f.actual_departure)*60 + extract(minute from f.actual_arrival - f.actual_departure) actual_duration,
+    aa.city departure_city, -- город вылета
+    a.city arrival_city, -- город прилета
+    aa.latitude departure_lat, -- координаты отправления
+    aa.longitude departure_lon, -- координаты отправления
+    a.latitude arrival_lat, -- координаты прилета
+    a.longitude arrival_lon, -- координаты прилета
+    f.aircraft_code, -- код самолета
+    ac.model,
+    ac.range,
+    count(tf.ticket_no) over (partition by f.flight_id) count_tickets, -- количество купленных на этот рейс билетов
+    (count(tf.ticket_no) over (partition by f.flight_id))/count(distinct s.seat_no)::numeric how_full, -- заполненность рейса
+    count(case when tf.fare_conditions = 'Business' then tf.ticket_no end) over (partition by f.flight_id) bus_class_tickets, -- количество билетов бизнес на рейсе
+    count(case when tf.fare_conditions = 'Economy' then tf.ticket_no end) over (partition by f.flight_id) econ_class_tickets, -- количество билетов эконом на рейсе
+    count(distinct s.seat_no) ac_capacity, -- вместимость этого самолета
+    count(case when s.fare_conditions = 'Business' then s.seat_no end) bus_class_capacity, -- вместимость бизнес класса самолета этого типа
+    count(case when s.fare_conditions = 'Economy' then s.seat_no end) econ_class_capacity, -- вместимость эконом класса самолета этого типа
+    sum(tf.amount) over (partition by f.flight_id) total_amount_by_flight, -- суммарная стоимость всех билетов этого рейса
+    avg(tf.amount) over (partition by f.flight_id) avg_amount_by_flight, -- средняя стоимость билета этого рейса
+    min(tf.amount) over (partition by f.flight_id) min_amount_by_flight, -- минимальная стоимость билета этого рейса
+    max(tf.amount) over (partition by f.flight_id) max_amount_by_flight, -- максимальная стоимость билета этого рейса
+    count(case when tf.amount = 36600 then tf.ticket_no end) over (partition by f.flight_id) count_36600, -- билетов на рейсе за 36600
+    count(case when tf.amount = 12200 then tf.ticket_no end) over (partition by f.flight_id) count_12200, -- билетов на рейсе за 12200
+    count(case when tf.amount = 13400 then tf.ticket_no end) over (partition by f.flight_id) count_13400, -- билетов на рейсе за 13400
+    count(case when tf.amount = 18900 then tf.ticket_no end) over (partition by f.flight_id) count_18900, -- билетов на рейсе за 18900
+    count(case when tf.amount = 6300 then tf.ticket_no end) over (partition by f.flight_id) count_6300, -- билетов на рейсе за 6300
+    count(case when tf.amount = 6900 then tf.ticket_no end) over (partition by f.flight_id) count_6900 -- билетов на рейсе за 6900
+from 
+    dst_project.flights f
+    join dst_project.airports a on f.arrival_airport = a.airport_code -- присоединяем информацию по аэропорту прилета
+    join dst_project.airports aa on f.departure_airport = aa.airport_code -- присоединяем информацию по аэропорту вылета
+    join dst_project.aircrafts ac on f.aircraft_code = ac.aircraft_code -- присоединяем информацию по модели самолета
+    join dst_project.ticket_flights tf on f.flight_id = tf.flight_id -- присоединяем информацию о билетах
+    join dst_project.seats s on f.aircraft_code = s.aircraft_code  -- присоединяем информацию о расположении и классе мест в самолете
+where
+    f.departure_airport = 'AAQ' -- нас интересует аэропорт Анапы в качестве аэропорта вылета
+    and (date_trunc('month', f.scheduled_departure) in ('2016-12-01','2017-01-01','2017-02-01')) -- выбираем зимние месяцы
+    and status not in ('Cancelled') -- самолет не должен быть отменен
+group by 1, aa.city, a.city, aa.latitude, aa.longitude, a.latitude, a.longitude, ac.model, ac.range, 
+    tf.ticket_no, tf.amount, tf.fare_conditions
+order by 3 
+
+
+*************************************************************************************************************************************************************************
+
+
+
+
