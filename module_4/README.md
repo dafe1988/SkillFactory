@@ -12,10 +12,15 @@
 ====================================================================== 
 ## USAGE:
 
-## Исследование базы данных по авиарейсам и итоговый SQL запрос в файле: /SkillFactory/module_4/project_4_sql.txt
+## Исследование базы данных по авиарейсам и итоговый SQL запрос в файле: 
+https://github.com/dafe1988/SkillFactory/blob/main/module_4/project_4_sql.txt
 
-## Собранный датасет по рейсам из Анапы за исследуюемый период: /SkillFactory/module_4/project_4_ds.csv
+## Собранный датасет по рейсам из Анапы за исследуюемый период:
+https://github.com/dafe1988/SkillFactory/blob/main/module_4/project_4_ds.csv
+
 
 ## Презентация с итогами исследования доступна по ссылке: 
+https://docs.google.com/presentation/d/1HHyV8-B1PYjLE68GpRvUmJzHwlZc0ixu/edit?usp=sharing&ouid=104331419847598608496&rtpof=true&sd=true
     
-## Блокнот с анализом получившегося датасета: /SkillFactory/module_4//Project_4_analitics.ipynb через Jupiter Notebook
+## Блокнот с анализом получившегося датасета: 
+https://github.com/dafe1988/SkillFactory/blob/main/module_4/Project_4_analitics.ipynb
